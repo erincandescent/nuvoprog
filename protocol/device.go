@@ -14,10 +14,11 @@
 package protocol
 
 import (
+	"encoding/hex"
 	"errors"
-	"fmt"
+	"log"
 
-	"github.com/google/gousb"
+	"github.com/karalabe/hid"
 )
 
 var (
@@ -33,7 +34,14 @@ type deviceConfig struct {
 }
 
 var devices = map[uint32]*deviceConfig{
+	// Nu-Link-ME, UART off
 	0x0416511c: &deviceConfig{
+		NewFramer: NewV1Framer,
+		EPOut:     0x04,
+		EPIn:      0x83,
+	},
+	// Nu-Link-ME, UART on
+	0x0416511d: &deviceConfig{
 		NewFramer: NewV1Framer,
 		EPOut:     0x04,
 		EPIn:      0x83,
@@ -44,15 +52,11 @@ type Device struct {
 	config *deviceConfig
 	framer Framer
 	seqNo  uint8
-	dev    *gousb.Device
-	cfg    *gousb.Config
-	ifc    *gousb.Interface
-	in     *gousb.InEndpoint
-	out    *gousb.OutEndpoint
+	dev    *hid.Device
 }
 
 func (d *Device) Path() string {
-	return fmt.Sprintf("%d.%d", d.dev.Desc.Bus, d.dev.Desc.Address)
+	return d.dev.Path
 }
 
 func (d *Device) MaxPayloadSize() int {
@@ -62,7 +66,7 @@ func (d *Device) MaxPayloadSize() int {
 func (d *Device) nextSequenceNumber() uint8 {
 	d.seqNo++
 	if d.seqNo >= 0x80 {
-		d.seqNo = 0
+		d.seqNo = 1
 	}
 	return d.seqNo
 }
@@ -76,7 +80,8 @@ func (d *Device) Send(body []byte) error {
 	}
 
 	msgBytes := msg.Bytes()
-	l, err := d.out.Write([]byte(msgBytes))
+	log.Println("> ", hex.EncodeToString([]byte(msgBytes)))
+	l, err := d.dev.Write([]byte(msgBytes))
 	if err != nil {
 		return err
 	} else if l != len(msgBytes) {
@@ -88,20 +93,32 @@ func (d *Device) Send(body []byte) error {
 
 func (d *Device) Receive() ([]byte, error) {
 	inBuf := make([]byte, d.framer.FrameLength())
-	l, err := d.in.Read(inBuf)
-	if err != nil {
-		return nil, err
-	} else if l != d.framer.FrameLength() {
-		return nil, ErrReadSizeIncorrect
-	}
 
-	respf, err := d.framer.Unframe(inBuf)
-	if err != nil {
-		return nil, err
-	} else if respf.SequenceNumber() != d.seqNo {
-		return nil, ErrSequenceNumberIncorrect
+	attempt := 0
+	for {
+		l, err := d.dev.Read(inBuf)
+		if err != nil {
+			return nil, err
+		} else if l != d.framer.FrameLength() {
+			return nil, ErrReadSizeIncorrect
+		}
+
+		log.Println("< ", hex.EncodeToString([]byte(inBuf)))
+		respf, err := d.framer.Unframe(inBuf)
+		if err != nil {
+			return nil, err
+		} else if respf.SequenceNumber() != d.seqNo {
+			log.Println("Expecting sequence number ", d.seqNo, ", got ", respf.SequenceNumber())
+			attempt++
+			if attempt == 5 {
+				return nil, ErrSequenceNumberIncorrect
+			} else {
+				continue
+			}
+		}
+
+		return respf.Body(), nil
 	}
-	return respf.Body(), nil
 }
 
 func (d *Device) Request(body []byte) ([]byte, error) {
@@ -113,84 +130,29 @@ func (d *Device) Request(body []byte) ([]byte, error) {
 }
 
 func (d *Device) Close() {
-	if d != nil && d.ifc != nil {
-		d.ifc.Close()
+	if d != nil && d.dev != nil {
+		d.dev.Close()
 		d.dev = nil
-		d.cfg = nil
-		d.ifc = nil
-		d.in = nil
-		d.out = nil
 	}
 }
 
-func Connect(ctx *gousb.Context) ([]*Device, error) {
-	baseDevs, err := ctx.OpenDevices(func(desc *gousb.DeviceDesc) bool {
-		vidpid := (uint32(desc.Vendor) << 16) | uint32(desc.Product)
-		_, ok := devices[vidpid]
-		return ok
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	nldevs := make([]*Device, 0, len(baseDevs))
+func Connect() ([]*Device, error) {
+	var nldevs []*Device
 	defer func() {
 		for _, d := range nldevs {
 			d.Close()
 		}
 	}()
 
-	for _, usbdev := range baseDevs {
-		vidpid := (uint32(usbdev.Desc.Vendor) << 16) | uint32(usbdev.Desc.Product)
+	for _, deviceInfo := range hid.Enumerate(0, 0) {
+		vidpid := (uint32(deviceInfo.VendorID) << 16) | uint32(deviceInfo.ProductID)
 		devcfg := devices[vidpid]
 
 		if devcfg == nil {
 			continue
 		}
 
-		if len(usbdev.Desc.Configs) != 1 {
-			return nil, fmt.Errorf("Too many configs (%d)", len(usbdev.Desc.Configs))
-		}
-
-		var cfgdesc gousb.ConfigDesc
-		for _, cfg := range usbdev.Desc.Configs {
-			cfgdesc = cfg
-		}
-
-		haveInterface := false
-		var ifcdesc gousb.InterfaceSetting
-	ifc:
-		for _, ifc := range cfgdesc.Interfaces {
-			for _, setting := range ifc.AltSettings {
-				if setting.Class == gousb.ClassData {
-					haveInterface = true
-					ifcdesc = setting
-					break ifc
-				}
-			}
-		}
-
-		if !haveInterface {
-			return nil, errors.New("Unable to find interface setting")
-		}
-
-		cfg, err := usbdev.Config(cfgdesc.Number)
-		if err != nil {
-			return nil, err
-		}
-
-		ifc, err := cfg.Interface(ifcdesc.Number, ifcdesc.Alternate)
-		if err != nil {
-			return nil, err
-		}
-
-		inep, err := ifc.InEndpoint(devcfg.EPIn)
-		if err != nil {
-			return nil, err
-		}
-
-		outep, err := ifc.OutEndpoint(devcfg.EPOut)
+		dev, err := deviceInfo.Open()
 		if err != nil {
 			return nil, err
 		}
@@ -199,11 +161,7 @@ func Connect(ctx *gousb.Context) ([]*Device, error) {
 			config: devcfg,
 			framer: devcfg.NewFramer(),
 			seqNo:  0,
-			dev:    usbdev,
-			cfg:    cfg,
-			ifc:    ifc,
-			in:     inep,
-			out:    outep,
+			dev:    dev,
 		})
 	}
 

@@ -16,22 +16,13 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/erincandescent/nuvoprog/protocol"
 	"github.com/erincandescent/nuvoprog/target"
-	"github.com/google/gousb"
 )
 
-func closeContext(ctx *gousb.Context) {
-	if err := ctx.Close(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error closing USB context: %v\n", err)
-		os.Exit(1)
-	}
-}
-
-func connectToTarget(ctx *gousb.Context) (*protocol.Device, *target.Definition, error) {
-	devs, err := protocol.Connect(ctx)
+func connectToTarget() (*protocol.Device, *target.Definition, error) {
+	devs, err := protocol.Connect()
 	if err != nil {
 		return nil, nil, err
 	}

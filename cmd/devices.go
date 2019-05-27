@@ -19,7 +19,6 @@ import (
 
 	"github.com/erincandescent/nuvoprog/protocol"
 	"github.com/fatih/color"
-	"github.com/google/gousb"
 	"github.com/spf13/cobra"
 )
 
@@ -29,8 +28,7 @@ var devicesCmd = &cobra.Command{
 	Short: "List connected programmers",
 	Long:  `Lisy connected programmers and their firmware versions`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := gousb.NewContext()
-		devs, err := protocol.Connect(ctx)
+		devs, err := protocol.Connect()
 		if err != nil {
 			return err
 		}

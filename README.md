@@ -34,8 +34,7 @@ using `go get -u github.com/erincandescent/nuvoprog`. Ensure
 that `$GOPATH/bin` is on your path (`GOPATH` defaults to `$HOME/go`);
 alternatively, move the resulting binary to a location of your choice.
 
-You will need to install your distribution's development package for
-libusb 1.0.
+The `hidapi` and `libusb` packages are [vendored by our upstream](https://github.com/karalabe/hid)
 
 # Supported Devices
 ## Programmers

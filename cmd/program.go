@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"github.com/erincandescent/nuvoprog/protocol"
-	"github.com/google/gousb"
 	"github.com/spf13/cobra"
 )
 
@@ -26,10 +25,7 @@ var programCmd = &cobra.Command{
 	Short: "Program a target device",
 	Long:  `Program a target device`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := gousb.NewContext()
-		defer closeContext(ctx)
-
-		dev, td, err := connectToTarget(ctx)
+		dev, td, err := connectToTarget()
 		if err != nil {
 			return err
 		}

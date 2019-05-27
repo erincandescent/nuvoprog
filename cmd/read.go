@@ -16,7 +16,6 @@ package cmd
 
 import (
 	"github.com/erincandescent/nuvoprog/protocol"
-	"github.com/google/gousb"
 	"github.com/spf13/cobra"
 )
 
@@ -27,10 +26,7 @@ var readCmd = &cobra.Command{
 	Long:  `Read out the contents of the device's flash`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
-		ctx := gousb.NewContext()
-		defer closeContext(ctx)
-
-		dev, td, err := connectToTarget(ctx)
+		dev, td, err := connectToTarget()
 		if err != nil {
 			return err
 		}
