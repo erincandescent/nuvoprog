@@ -65,12 +65,16 @@ type ProductID uint32
 
 const (
 	ProductIDNuLinkME ProductID = 0x00550501
+	ProductIDNuLink1 ProductID = 0x00012009
 )
 
 func (p ProductID) String() string {
 	switch p {
 	case ProductIDNuLinkME:
 		return "Nu-Link-Me"
+
+	case ProductIDNuLink1:
+		return "Nu-Link1"
 
 	default:
 		return fmt.Sprintf("0x%08x", uint32(p))
