@@ -302,6 +302,7 @@ const (
 	// 		DDDD = Device ID
 	DeviceN76E003 = 0xDA3650
 	DeviceN76E616 = 0xDA2F50 
+	DeviceN76E885 = 0xDA2150 
 )
 
 func (id DeviceID) String() string {
@@ -310,6 +311,8 @@ func (id DeviceID) String() string {
 		return "N76E003"
 	case DeviceN76E616:
 		return "N76E616"
+	case DeviceN76E885:
+		return "N76E885"
 	default:
 		return fmt.Sprintf("0x%08x", uint32(id))
 	}
