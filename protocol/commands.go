@@ -134,15 +134,15 @@ const (
 	// This is probably "1T 8051" family, but I only have one
 	// test device. If multiple devices use it, then we'll rename
 	// this
-	ChipFamilyN76E003 = 0x800
+	ChipFamily1T8051 = 0x800
 )
 
 func (f ChipFamily) String() string {
 	switch f {
 	case ChipFamilyM2351:
 		return "M2351"
-	case ChipFamilyN76E003:
-		return "N76E003"
+	case ChipFamily1T8051:
+		return "Nuvoton 1T 8051"
 	default:
 		return fmt.Sprintf("0x%08x", uint32(f))
 	}
@@ -301,12 +301,15 @@ const (
 	//		CC   = Company ID
 	// 		DDDD = Device ID
 	DeviceN76E003 = 0xDA3650
+	DeviceN76E616 = 0xDA2F50 
 )
 
 func (id DeviceID) String() string {
 	switch id {
 	case DeviceN76E003:
 		return "N76E003"
+	case DeviceN76E616:
+		return "N76E616"
 	default:
 		return fmt.Sprintf("0x%08x", uint32(id))
 	}
