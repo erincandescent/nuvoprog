@@ -39,15 +39,14 @@ The `hidapi` and `libusb` packages are [vendored by our upstream](https://github
 # Supported Devices
 ## Programmers
 
- *  Nu-Link-Me (as found on Nu-Tiny devboards)
-
-Coming soon:
-
+ * Nu-Link-Me (as found on Nu-Tiny devboards)
  * Nu-Link
 
-## Target devices
+## Target and tested devices
 
- * N76E003 (8051T1 family)
+ * N76E003
+ * N76E616
+ * N76E885
 
 # Missing functionality
 
