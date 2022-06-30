@@ -22,21 +22,19 @@ import (
 
 //go:generate enumer -type=BootSelect -trimprefix=BootFrom -transform=snake -json -text
 
-type N76E003LDROMSize byte
+type N76E616LDROMSize byte
 
 const (
-	N76E003LDROM0KB N76E003LDROMSize = iota
-	N76E003LDROM1KB
-	N76E003LDROM2KB
-	N76E003LDROM3KB
-	N76E003LDROM4KB
+	N76E616LDROM0KB N76E616LDROMSize = iota
+	N76E616LDROM1KB
+	N76E616LDROM2KB
+	N76E616LDROM3KB
+	N76E616LDROM4KB
 )
 
-type N76E003Config struct {
+type N76E616Config struct {
 	// CONFIG0.CBS[7]
 	BootSelect BootSelect `json:"boot_select"`
-	// CONFIG0.OCDPWM[5]
-	PWMEnabledDuringOCD bool `json:"pwm_enabled_during_ocd"`
 	// CONFIG0.OCDEN[4]
 	OCDEnabled bool `json:"ocd_enabled"`
 	// CONFIG0.RPD[2]
@@ -46,7 +44,7 @@ type N76E003Config struct {
 	Locked bool `json:"locked"`
 
 	// CONFIG1.LDSIZE[2:0]
-	LDROMSize N76E003LDROMSize `json:"ldrom_size"`
+	LDROMSize N76E616LDROMSize `json:"ldrom_size"`
 
 	// CONFIG2.CBODEN[7]
 	BODDisabled bool `json:"bod_disabled"`
@@ -64,7 +62,7 @@ type N76E003Config struct {
 	WDT WDTMode `json:"wdt"`
 }
 
-func (cfg *N76E003Config) UnmarshalBinary(buf []byte) error {
+func (cfg *N76E616Config) UnmarshalBinary(buf []byte) error {
 	if len(buf) < 4 {
 		return errors.New("Too short for config bytes")
 	}
@@ -74,22 +72,21 @@ func (cfg *N76E003Config) UnmarshalBinary(buf []byte) error {
 		cfg.BootSelect = BootFromLDROM
 	}
 
-	cfg.PWMEnabledDuringOCD = buf[0]&0x20 == 0
 	cfg.OCDEnabled = buf[0]&0x10 == 0
 	cfg.ResetPinDisabled = buf[0]&0x04 == 0
 	cfg.Locked = buf[0]&0x02 == 0
 
 	switch buf[1] & 0x7 {
 	case 7:
-		cfg.LDROMSize = N76E003LDROM0KB
+		cfg.LDROMSize = N76E616LDROM0KB
 	case 6:
-		cfg.LDROMSize = N76E003LDROM1KB
+		cfg.LDROMSize = N76E616LDROM1KB
 	case 5:
-		cfg.LDROMSize = N76E003LDROM2KB
+		cfg.LDROMSize = N76E616LDROM2KB
 	case 4:
-		cfg.LDROMSize = N76E003LDROM3KB
+		cfg.LDROMSize = N76E616LDROM3KB
 	default:
-		cfg.LDROMSize = N76E003LDROM4KB
+		cfg.LDROMSize = N76E616LDROM4KB
 	}
 
 	cfg.BODDisabled = buf[2]&0x80 == 0
@@ -118,7 +115,7 @@ func (cfg *N76E003Config) UnmarshalBinary(buf []byte) error {
 	return nil
 }
 
-func (cfg *N76E003Config) MarshalBinary() ([]byte, error) {
+func (cfg *N76E616Config) MarshalBinary() ([]byte, error) {
 	buf := make([]byte, 8)
 	for i := range buf {
 		buf[i] = 0xFF
@@ -126,10 +123,6 @@ func (cfg *N76E003Config) MarshalBinary() ([]byte, error) {
 
 	if cfg.BootSelect == BootFromLDROM {
 		buf[0] &= 0x7F
-	}
-
-	if cfg.PWMEnabledDuringOCD {
-		buf[0] &= 0xDF
 	}
 
 	if cfg.OCDEnabled {
@@ -145,15 +138,15 @@ func (cfg *N76E003Config) MarshalBinary() ([]byte, error) {
 	}
 
 	switch cfg.LDROMSize {
-	case N76E003LDROM0KB:
+	case N76E616LDROM0KB:
 		buf[1] = 0xFF
-	case N76E003LDROM1KB:
+	case N76E616LDROM1KB:
 		buf[1] = 0xFE
-	case N76E003LDROM2KB:
+	case N76E616LDROM2KB:
 		buf[1] = 0xFD
-	case N76E003LDROM3KB:
+	case N76E616LDROM3KB:
 		buf[1] = 0xFC
-	case N76E003LDROM4KB:
+	case N76E616LDROM4KB:
 		buf[1] = 0xFB
 	}
 
@@ -190,7 +183,7 @@ func (cfg *N76E003Config) MarshalBinary() ([]byte, error) {
 	}
 
 	// Sense checking: We should unmarshal to the same values
-	var newCfg N76E003Config
+	var newCfg N76E616Config
 	if err := newCfg.UnmarshalBinary(buf); err != nil {
 		return nil, err
 	}
@@ -202,27 +195,27 @@ func (cfg *N76E003Config) MarshalBinary() ([]byte, error) {
 	return buf, nil
 }
 
-func (c *N76E003Config) GetLDROMSize() uint {
+func (c *N76E616Config) GetLDROMSize() uint {
 	switch c.LDROMSize {
-	case N76E003LDROM0KB:
+	case N76E616LDROM0KB:
 		return 0
-	case N76E003LDROM1KB:
+	case N76E616LDROM1KB:
 		return 1024
-	case N76E003LDROM2KB:
+	case N76E616LDROM2KB:
 		return 2048
-	case N76E003LDROM3KB:
+	case N76E616LDROM3KB:
 		return 3072
-	case N76E003LDROM4KB:
+	case N76E616LDROM4KB:
 		return 4096
 	default:
 		panic("Invalid size")
 	}
 }
 
-var N76E003 = &target.Definition{
-	Name:        "N76E003",
+var N76E616 = &target.Definition{
+	Name:        "N76E616",
 	Family:      protocol.ChipFamily1T8051,
-	DeviceID:    protocol.DeviceN76E003,
+	DeviceID:    protocol.DeviceN76E616,
 	ProgMemSize: 18 * 1024,
 	LDROMOffset: 0x3800,
 	Config: target.ConfigSpace{
@@ -230,10 +223,10 @@ var N76E003 = &target.Definition{
 		MinSize:    4,
 		ReadSize:   8,
 		WriteSize:  32,
-		NewConfig:  func() target.Config { return new(N76E003Config) },
+		NewConfig:  func() target.Config { return new(N76E616Config) },
 	},
 }
 
 func init() {
-	target.Register(N76E003)
+	target.Register(N76E616)
 }

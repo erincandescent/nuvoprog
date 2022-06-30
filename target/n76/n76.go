@@ -24,6 +24,20 @@ const (
 
 //go:generate enumer -type=N76E003LDROMSize -trimprefix=N76E003LDROM -transform=snake -json -text
 
+type BODVoltage885 byte
+
+const (
+        BODVoltage8854v3 BODVoltage885 = iota
+        BODVoltage8853v7
+        BODVoltage8853v0
+        BODVoltage8852v7
+        BODVoltage8852v4
+        BODVoltage8852v2
+        BODVoltage8852v0
+        BODVoltage8851v7
+)
+//go:generate enumer -type=BODVoltage885 -trimprefix=BODVoltage885 -transform=snake -json -text
+
 type BODVoltage byte
 
 const (
